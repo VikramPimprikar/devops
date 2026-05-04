@@ -72,3 +72,5 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/t
 
 ## CI/CD Integration
 This project uses Jenkins and SonarQube for continuous integration and code quality analysis.
+
+this is all deployed on aws
