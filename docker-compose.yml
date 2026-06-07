@@ -1,0 +1,114 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: food-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: vikram123
+      POSTGRES_DB: food_microservice
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  user-service:
+    build: ./backend
+    container_name: user-service
+    command: node userService.js
+    ports:
+      - "5001:5001"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: vikram123
+      DB_NAME: food_microservice
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+
+  restaurant-service:
+    build: ./backend
+    container_name: restaurant-service
+    command: node restaurantService.js
+    ports:
+      - "5002:5002"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: vikram123
+      DB_NAME: food_microservice
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+
+  notification-service:
+    build: ./backend
+    container_name: notification-service
+    command: node notificationService.js
+    ports:
+      - "5005:5005"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: vikram123
+      DB_NAME: food_microservice
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+
+  order-service:
+    build: ./backend
+    container_name: order-service
+    command: node orderService.js
+    ports:
+      - "5003:5003"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: vikram123
+      DB_NAME: food_microservice
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+      - notification-service
+
+  payment-service:
+    build: ./backend
+    container_name: payment-service
+    command: node paymentService.js
+    ports:
+      - "5004:5004"
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: vikram123
+      DB_NAME: food_microservice
+      DB_PORT: 5432
+    depends_on:
+      - postgres
+
+  gateway:
+    build: ./backend
+    container_name: api-gateway
+    command: node gateway.js
+    ports:
+      - "5000:5000"
+    depends_on:
+      - user-service
+      - restaurant-service
+      - order-service
+      - payment-service
+      - notification-service
+
+  frontend:
+    build: ./frontend
+    container_name: food-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - gateway
+
+volumes:
+  postgres_data:
