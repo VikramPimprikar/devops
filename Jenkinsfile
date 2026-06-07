@@ -2,25 +2,20 @@ pipeline {
     agent any
 
     stages {
-        stage('Pull Code') {
+        stage('Checkout') {
             steps {
-                echo 'Code pulled from GitHub'
+                echo 'Code checked out from GitHub'
             }
         }
 
-        stage('Stop Old Containers') {
+        stage('Deploy with Docker Compose') {
             steps {
                 sh 'docker-compose down || true'
-            }
-        }
-
-        stage('Build and Deploy') {
-            steps {
                 sh 'docker-compose up -d --build'
             }
         }
 
-        stage('Show Running Containers') {
+        stage('Show Containers') {
             steps {
                 sh 'docker ps'
             }
