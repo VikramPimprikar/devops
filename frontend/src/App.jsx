@@ -1,205 +1,306 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import "./App.css";
-
-const API = "http://localhost:5000/api";
-
-function App() {
-  const [user, setUser] = useState(null);
-  const [restaurants, setRestaurants] = useState([]);
-  const [orders, setOrders] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-
+ 
+const API = "http://13.50.153.9:5000/api";
+ 
+const SAMPLE_RESTAURANTS = [
+  { id: 1, name: "The Spice Route", location: "Bandra, Mumbai", menu: [{ id: 1, item_name: "Chicken Biryani", price: 280 }, { id: 2, item_name: "Paneer Tikka", price: 220 }, { id: 3, item_name: "Naan", price: 45 }] },
+  { id: 2, name: "Pizza Palace", location: "Andheri, Mumbai", menu: [{ id: 4, item_name: "Margherita Pizza", price: 320 }, { id: 5, item_name: "Garlic Bread", price: 120 }, { id: 6, item_name: "Pasta", price: 260 }] },
+  { id: 3, name: "Dragon Wok", location: "Juhu, Mumbai", menu: [{ id: 7, item_name: "Fried Rice", price: 180 }, { id: 8, item_name: "Manchurian", price: 160 }, { id: 9, item_name: "Spring Rolls", price: 130 }] },
+];
+ 
+function Toast({ message }) {
+  return message ? <div className="toast show">{message}</div> : null;
+}
+ 
+function AuthPage({ onLogin }) {
+  const [tab, setTab] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
-  const [restaurantId, setRestaurantId] = useState("");
-  const [items, setItems] = useState("");
-  const [amount, setAmount] = useState("");
-
-  useEffect(() => {
-    fetchRestaurants();
-    fetchOrders();
-    fetchNotifications();
-  }, []);
-
-  const fetchRestaurants = async () => {
-    const res = await axios.get(`${API}/restaurants`);
-    setRestaurants(res.data);
+  const [toast, setToast] = useState("");
+ 
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
   };
-
-  const fetchOrders = async () => {
-    const res = await axios.get(`${API}/orders`);
-    setOrders(res.data);
-  };
-
-  const fetchNotifications = async () => {
-    const res = await axios.get(`${API}/notifications`);
-    setNotifications(res.data);
-  };
-
-  const register = async () => {
-    await axios.post(`${API}/register`, {
-      name,
-      email,
-      password
-    });
-
-    alert("Registered successfully");
-  };
-
+ 
   const login = async () => {
+    if (!email || !password) { showToast("Please fill all fields"); return; }
     try {
-      const res = await axios.post(`${API}/login`, {
-        email,
-        password
-      });
-
-      setUser(res.data.user);
-      alert("Login successful");
-    } catch {
-      alert("Invalid login");
-    }
+      const res = await fetch(`${API}/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ email, password }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Login failed");
+      onLogin(data.user);
+    } catch (e) { showToast(e.message || "Login failed"); }
   };
-
-  const placeOrder = async () => {
-    if (!user) {
-      alert("Please login first");
-      return;
-    }
-
-    await axios.post(`${API}/orders`, {
-      userId: user.id,
-      restaurantId,
-      items,
-      totalAmount: amount
-    });
-
-    alert("Order placed successfully");
-    fetchOrders();
-    fetchNotifications();
+ 
+  const register = async () => {
+    if (!name || !email || !password) { showToast("Please fill all fields"); return; }
+    try {
+      const res = await fetch(`${API}/register`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, email, password }) });
+      if (!res.ok) throw new Error("Registration failed");
+      showToast("Account created! Please sign in.");
+      setTab("login");
+    } catch (e) { showToast(e.message || "Registration failed"); }
   };
-
-  const makePayment = async (orderId, totalAmount) => {
-    await axios.post(`${API}/payment`, {
-      orderId,
-      amount: totalAmount,
-      method: "UPI"
-    });
-
-    alert("Payment successful");
-    fetchOrders();
-  };
-
+ 
+  const demoLogin = () => onLogin({ id: 1, name: "Demo User", email: "demo@foodops.com" });
+ 
   return (
-    <div className="container">
-      <h1>Food Microservice App</h1>
-
-      <div className="card">
-        <h2>Register / Login</h2>
-
-        <input
-          type="text"
-          placeholder="Name"
-          onChange={(e) => setName(e.target.value)}
-        />
-
-        <input
-          type="email"
-          placeholder="Email"
-          onChange={(e) => setEmail(e.target.value)}
-        />
-
-        <input
-          type="password"
-          placeholder="Password"
-          onChange={(e) => setPassword(e.target.value)}
-        />
-
-        <button onClick={register}>Register</button>
-        <button onClick={login}>Login</button>
-
-        {user && <h3>Logged in as {user.name}</h3>}
-      </div>
-
-      <div className="card">
-        <h2>Restaurants</h2>
-
-        {restaurants.map((r) => (
-          <div className="box" key={r.id}>
-            <h3>{r.name}</h3>
-            <p>Location: {r.location}</p>
-
-            <h4>Menu</h4>
-            {r.menu.map((m) => (
-              <p key={m.id}>
-                {m.item_name} - ₹{m.price}
-              </p>
-            ))}
+    <div className="auth-wrap">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <div className="big-dot">🍽️</div>
+          <h2>FoodOps</h2>
+          <p>Food delivery, powered by microservices</p>
+        </div>
+ 
+        <div className="tabs">
+          <button className={`tab${tab === "login" ? " active" : ""}`} onClick={() => setTab("login")}>Sign in</button>
+          <button className={`tab${tab === "register" ? " active" : ""}`} onClick={() => setTab("register")}>Create account</button>
+        </div>
+ 
+        {tab === "login" ? (
+          <div>
+            <div className="field"><label>Email</label><input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
+            <div className="field"><label>Password</label><input type="password" placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} /></div>
+            <button className="btn-primary" onClick={login}>Sign in</button>
+            <div className="divider">or</div>
+            <button className="btn-secondary" onClick={demoLogin}>⚡ Try demo account</button>
           </div>
-        ))}
-      </div>
-
-      <div className="card">
-        <h2>Place Order</h2>
-
-        <select onChange={(e) => setRestaurantId(e.target.value)}>
-          <option value="">Select Restaurant</option>
-          {restaurants.map((r) => (
-            <option value={r.id} key={r.id}>
-              {r.name}
-            </option>
-          ))}
-        </select>
-
-        <input
-          type="text"
-          placeholder="Items e.g. Pizza, Burger"
-          onChange={(e) => setItems(e.target.value)}
-        />
-
-        <input
-          type="number"
-          placeholder="Total Amount"
-          onChange={(e) => setAmount(e.target.value)}
-        />
-
-        <button onClick={placeOrder}>Place Order</button>
-      </div>
-
-      <div className="card">
-        <h2>Orders</h2>
-
-        {orders.map((o) => (
-          <div className="box" key={o.id}>
-            <p>Order ID: {o.id}</p>
-            <p>User ID: {o.user_id}</p>
-            <p>Restaurant ID: {o.restaurant_id}</p>
-            <p>Items: {o.items}</p>
-            <p>Total Amount: ₹{o.total_amount}</p>
-            <p>Status: {o.status}</p>
-
-            {o.status !== "Paid" && (
-              <button onClick={() => makePayment(o.id, o.total_amount)}>
-                Pay Now
-              </button>
-            )}
+        ) : (
+          <div>
+            <div className="field"><label>Full name</label><input type="text" placeholder="Your name" value={name} onChange={e => setName(e.target.value)} /></div>
+            <div className="field"><label>Email</label><input type="email" placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)} /></div>
+            <div className="field"><label>Password</label><input type="password" placeholder="Create password" value={password} onChange={e => setPassword(e.target.value)} /></div>
+            <button className="btn-primary" onClick={register}>Create account</button>
           </div>
-        ))}
+        )}
       </div>
-
-      <div className="card">
-        <h2>Notifications</h2>
-
-        {notifications.map((n) => (
-          <div className="box" key={n.id}>
-            <p>{n.message}</p>
+      <Toast message={toast} />
+    </div>
+  );
+}
+ 
+function RestaurantCard({ r, selected, onSelect }) {
+  return (
+    <div className={`rest-card${selected ? " selected" : ""}`} onClick={() => onSelect(r.id)}>
+      <div className="rest-header">
+        <div className="rest-icon">🍴</div>
+        <div>
+          <div className="rest-name">{r.name}</div>
+          <div className="rest-loc">📍 {r.location}</div>
+        </div>
+      </div>
+      <div className="menu-list">
+        {(r.menu || []).map(m => (
+          <div className="menu-row" key={m.id}>
+            <span>{m.item_name}</span>
+            <span className="menu-price">₹{m.price}</span>
           </div>
         ))}
       </div>
     </div>
   );
 }
-
+ 
+function OrderCard({ o, onPay }) {
+  return (
+    <div className="order-card">
+      <div className="order-top">
+        <div className="order-id">Order #{o.id}</div>
+        <span className={`status-badge ${o.status === "Paid" ? "paid" : "pending"}`}>{o.status || "Pending"}</span>
+      </div>
+      <div className="order-detail">🏪 Restaurant #{o.restaurant_id}</div>
+      <div className="order-detail">📋 {o.items}</div>
+      <div className="order-amount">₹{o.total_amount}</div>
+      {o.status !== "Paid" && (
+        <button className="pay-btn" onClick={() => onPay(o.id, o.total_amount)}>💳 Pay now</button>
+      )}
+    </div>
+  );
+}
+ 
+function MainPage({ user, onLogout }) {
+  const [restaurants, setRestaurants] = useState([]);
+  const [orders, setOrders] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [selectedRestId, setSelectedRestId] = useState("");
+  const [orderItems, setOrderItems] = useState("");
+  const [orderAmount, setOrderAmount] = useState("");
+  const [toast, setToast] = useState("");
+ 
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3000);
+  };
+ 
+  useEffect(() => {
+    fetchRestaurants();
+    fetchOrders();
+    fetchNotifications();
+  }, []);
+ 
+  const fetchRestaurants = async () => {
+    try {
+      const res = await fetch(`${API}/restaurants`);
+      const data = await res.json();
+      setRestaurants(data);
+    } catch { setRestaurants(SAMPLE_RESTAURANTS); }
+  };
+ 
+  const fetchOrders = async () => {
+    try {
+      const res = await fetch(`${API}/orders`);
+      const data = await res.json();
+      setOrders(data);
+    } catch { setOrders([]); }
+  };
+ 
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch(`${API}/notifications`);
+      const data = await res.json();
+      setNotifications(data);
+    } catch { setNotifications([]); }
+  };
+ 
+  const placeOrder = async () => {
+    if (!selectedRestId || !orderItems || !orderAmount) { showToast("Please fill all order details"); return; }
+    try {
+      const res = await fetch(`${API}/orders`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId: user.id, restaurantId: selectedRestId, items: orderItems, totalAmount: orderAmount }) });
+      if (!res.ok) throw new Error("Order failed");
+      showToast("Order placed successfully!");
+      setOrderItems("");
+      setOrderAmount("");
+      fetchOrders();
+      fetchNotifications();
+    } catch (e) { showToast(e.message || "Could not place order"); }
+  };
+ 
+  const makePayment = async (orderId, totalAmount) => {
+    try {
+      const res = await fetch(`${API}/payment`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId, amount: totalAmount, method: "UPI" }) });
+      if (!res.ok) throw new Error("Payment failed");
+      showToast("Payment successful!");
+      fetchOrders();
+    } catch (e) { showToast(e.message || "Payment failed"); }
+  };
+ 
+  const handleSelectRest = (id) => setSelectedRestId(String(id));
+ 
+  return (
+    <div className="app">
+      <nav className="navbar">
+        <div className="nav-brand">
+          <div className="nav-dot">🍽️</div>
+          FoodOps
+        </div>
+        <div className="nav-right">
+          <span className="nav-pill">Microservices</span>
+          <div className="user-name-nav">
+            <span className="dot-sm"></span>
+            {user.name}
+          </div>
+          <button className="nav-btn" onClick={onLogout}>Sign out</button>
+        </div>
+      </nav>
+ 
+      <div className="main-page">
+        <div className="stats-row">
+          <div className="stat">
+            <div className="stat-icon orange">🏪</div>
+            <div><div className="stat-num">{restaurants.length}</div><div className="stat-label">Restaurants</div></div>
+          </div>
+          <div className="stat">
+            <div className="stat-icon green">🛍️</div>
+            <div><div className="stat-num">{orders.length}</div><div className="stat-label">Total orders</div></div>
+          </div>
+          <div className="stat">
+            <div className="stat-icon blue">🔔</div>
+            <div><div className="stat-num">{notifications.length}</div><div className="stat-label">Notifications</div></div>
+          </div>
+        </div>
+ 
+        <div className="section">
+          <div className="section-header">
+            <div className="section-title">🏪 Restaurants</div>
+            <span className="badge-count">{restaurants.length}</span>
+          </div>
+          <div className="rest-grid">
+            {restaurants.length === 0
+              ? <div className="empty">Loading restaurants…</div>
+              : restaurants.map(r => <RestaurantCard key={r.id} r={r} selected={selectedRestId === String(r.id)} onSelect={handleSelectRest} />)
+            }
+          </div>
+        </div>
+ 
+        <div className="section">
+          <div className="section-header">
+            <div className="section-title">🛒 Place order</div>
+          </div>
+          <div className="form-row">
+            <div className="form-field">
+              <label>Restaurant</label>
+              <select value={selectedRestId} onChange={e => setSelectedRestId(e.target.value)}>
+                <option value="">Select restaurant</option>
+                {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+              </select>
+            </div>
+            <div className="form-field">
+              <label>Total amount (₹)</label>
+              <input type="number" placeholder="0" value={orderAmount} onChange={e => setOrderAmount(e.target.value)} />
+            </div>
+          </div>
+          <div className="form-field" style={{ marginBottom: "14px" }}>
+            <label>Items</label>
+            <input type="text" placeholder="e.g. Pizza, Garlic bread" value={orderItems} onChange={e => setOrderItems(e.target.value)} />
+          </div>
+          <button className="btn-primary" style={{ width: "auto", padding: "10px 24px" }} onClick={placeOrder}>✓ Place order</button>
+        </div>
+ 
+        <div className="section">
+          <div className="section-header">
+            <div className="section-title">📦 Your orders</div>
+            <span className="badge-count">{orders.length}</span>
+          </div>
+          <div className="order-grid">
+            {orders.length === 0
+              ? <div className="empty">No orders yet</div>
+              : orders.map(o => <OrderCard key={o.id} o={o} onPay={makePayment} />)
+            }
+          </div>
+        </div>
+ 
+        <div className="section">
+          <div className="section-header">
+            <div className="section-title">🔔 Notifications</div>
+          </div>
+          <div className="notif-list">
+            {notifications.length === 0
+              ? <div className="empty">No notifications</div>
+              : notifications.map(n => (
+                <div className="notif-item" key={n.id}>
+                  <div className="notif-dot"></div>
+                  <span>{n.message}</span>
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+      <Toast message={toast} />
+    </div>
+  );
+}
+ 
+function App() {
+  const [user, setUser] = useState(null);
+ 
+  return user
+    ? <MainPage user={user} onLogout={() => setUser(null)} />
+    : <AuthPage onLogin={setUser} />;
+}
+ 
 export default App;
