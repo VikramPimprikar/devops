@@ -20,5 +20,11 @@ pipeline {
                 sh 'docker ps'
             }
         }
+
+        stage('Trivy Security Scan') {
+            steps {
+                sh 'trivy fs .'
+        }
+}
     }
 }
