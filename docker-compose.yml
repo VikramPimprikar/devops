@@ -70,6 +70,7 @@ services:
       DB_PASSWORD: vikram123
       DB_NAME: food_microservice
       DB_PORT: 5432
+      NOTIFICATION_SERVICE: http://notification-service:5005
     depends_on:
       - postgres
       - notification-service
@@ -95,6 +96,12 @@ services:
     command: node gateway.js
     ports:
       - "5000:5000"
+    environment:
+      USER_SERVICE: http://user-service:5001
+      RESTAURANT_SERVICE: http://restaurant-service:5002
+      ORDER_SERVICE: http://order-service:5003
+      PAYMENT_SERVICE: http://payment-service:5004
+      NOTIFICATION_SERVICE: http://notification-service:5005
     depends_on:
       - user-service
       - restaurant-service
@@ -107,6 +114,8 @@ services:
     container_name: food-frontend
     ports:
       - "5173:5173"
+    environment:
+      VITE_API_URL: http://13.50.153.9:5000/api
     depends_on:
       - gateway
 

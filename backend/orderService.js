@@ -7,6 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+const NOTIFICATION_SERVICE = process.env.NOTIFICATION_SERVICE || "http://notification-service:5005";
+
 app.post("/orders", async (req, res) => {
   try {
     const { userId, restaurantId, items, totalAmount } = req.body;
@@ -18,10 +20,10 @@ app.post("/orders", async (req, res) => {
 
     const order = result.rows[0];
 
-    await axios.post("http://localhost:5005/notify", {
+    await axios.post(`${NOTIFICATION_SERVICE}/notify`, {
       orderId: order.id,
       message: `Order ${order.id} placed successfully`
-    });
+    }, { timeout: 5000 });
 
     res.json({
       message: "Order placed successfully",
