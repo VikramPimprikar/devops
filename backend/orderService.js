@@ -7,7 +7,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const NOTIFICATION_SERVICE = process.env.NOTIFICATION_SERVICE || "http://notification-service:5005";
+const NOTIFICATION_SERVICE =
+  process.env.NOTIFICATION_SERVICE || "http://localhost:5005";
 
 app.post("/orders", async (req, res) => {
   try {
@@ -20,16 +21,25 @@ app.post("/orders", async (req, res) => {
 
     const order = result.rows[0];
 
-    await axios.post(`${NOTIFICATION_SERVICE}/notify`, {
-      orderId: order.id,
-      message: `Order ${order.id} placed successfully`
-    }, { timeout: 5000 });
+    try {
+      await axios.post(
+        `${NOTIFICATION_SERVICE}/notify`,
+        {
+          orderId: order.id,
+          message: `Order ${order.id} placed successfully`
+        },
+        { timeout: 3000 }
+      );
+    } catch (notificationError) {
+      console.log("Notification service failed:", notificationError.message);
+    }
 
     res.json({
       message: "Order placed successfully",
       order
     });
   } catch (err) {
+    console.log("Order error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -39,6 +49,7 @@ app.get("/orders", async (req, res) => {
     const result = await pool.query("SELECT * FROM orders ORDER BY id DESC");
     res.json(result.rows);
   } catch (err) {
+    console.log("Fetch orders error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -53,11 +64,16 @@ app.put("/orders/:id/status", async (req, res) => {
       [status, id]
     );
 
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: "Order not found" });
+    }
+
     res.json({
       message: "Order status updated",
       order: result.rows[0]
     });
   } catch (err) {
+    console.log("Update order error:", err.message);
     res.status(500).json({ error: err.message });
   }
 });
