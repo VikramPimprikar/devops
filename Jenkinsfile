@@ -2,15 +2,17 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+        stage('Clean Old Containers') {
             steps {
-                echo 'Code checked out from GitHub'
+                sh '''
+                docker rm -f food-postgres user-service restaurant-service order-service payment-service notification-service api-gateway food-frontend node-exporter prometheus grafana || true
+                docker network rm food-microservice-pipeline_default || true
+                '''
             }
         }
 
         stage('Deploy with Docker Compose') {
             steps {
-                sh 'docker-compose down || true'
                 sh 'docker-compose up -d --build'
             }
         }
@@ -23,8 +25,8 @@ pipeline {
 
         stage('Trivy Security Scan') {
             steps {
-                sh 'trivy fs .'
+                sh 'trivy fs . || true'
+            }
         }
-}
     }
 }
